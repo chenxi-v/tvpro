@@ -16,6 +16,30 @@ interface BaseBody {
   action?: Action;
 }
 
+// GET方法：获取视频源配置
+export async function GET(request: NextRequest) {
+  try {
+    const authInfo = getAuthInfoFromCookie(request);
+    if (!authInfo || !authInfo.username) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const adminConfig = await getConfig();
+    
+    // 返回所有视频源配置（包括启用的和禁用的）
+    return NextResponse.json({
+      success: true,
+      data: adminConfig.SourceConfig || []
+    });
+  } catch (error) {
+    console.error('获取视频源配置失败:', error);
+    return NextResponse.json(
+      { error: '获取视频源配置失败' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   const envConfig = getEnvConfig();
   const storageType = envConfig.STORAGE_TYPE;

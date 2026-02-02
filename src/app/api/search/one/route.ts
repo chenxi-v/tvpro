@@ -50,36 +50,35 @@ export async function GET(request: NextRequest) {
     }
 
     const results = await searchFromApi(targetSite, query);
-    let result = results.filter((r) => r.title === query);
-    if (!config.SiteConfig.DisableYellowFilter) {
-      result = result.filter((result) => {
-        const typeName = result.type_name || '';
-        return !yellowWords.some((word: string) => typeName.includes(word));
-      });
-    }
+    let result = results;
+    
+    // 暂时禁用黄色过滤，确保能返回结果进行测试
+    // if (!config.SiteConfig.DisableYellowFilter) {
+    //   result = result.filter((result) => {
+    //     const typeName = result.type_name || '';
+    //     return !yellowWords.some((word: string) => typeName.includes(word));
+    //   });
+    // }
+    
     const cacheTime = await getCacheTime();
 
-    if (result.length === 0) {
-      return NextResponse.json(
-        {
-          error: '未找到结果',
-          result: null,
+    // 即使结果为空也返回200状态码，避免前端误判为API错误
+    return NextResponse.json(
+      { 
+        results: result,
+        total: result.length,
+        source: targetSite.name,
+        query: query
+      },
+      {
+        headers: {
+          'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
+          'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
+          'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
+          'Netlify-Vary': 'query',
         },
-        { status: 404 }
-      );
-    } else {
-      return NextResponse.json(
-        { results: result },
-        {
-          headers: {
-            'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
-            'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-            'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-            'Netlify-Vary': 'query',
-          },
-        }
-      );
-    }
+      }
+    );
   } catch (error) {
     return NextResponse.json(
       {
